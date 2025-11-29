@@ -102,6 +102,8 @@ pub struct LayerShellOptions {
     pub margin: Option<(Pixels, Pixels, Pixels, Pixels)>,
     /// How keyboard events should be delivered to the surface.
     pub keyboard_interactivity: KeyboardInteractivity,
+    /// Usually monitor index, if not specified, the default output is used.
+    pub output_index: Option<usize>,
 }
 
 /// An error indicating that an action failed because the compositor doesn't support the required

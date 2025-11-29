@@ -75,6 +75,8 @@ mod example {
                         anchor: Anchor::LEFT | Anchor::RIGHT | Anchor::BOTTOM,
                         margin: Some((px(0.), px(0.), px(40.), px(0.))),
                         keyboard_interactivity: KeyboardInteractivity::None,
+                        // First monitor usually:
+                        output_index: Some(0),
                         ..Default::default()
                     }),
                     ..Default::default()

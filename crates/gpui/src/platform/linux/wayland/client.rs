@@ -26,6 +26,7 @@ use wayland_client::protocol::wl_callback::{self, WlCallback};
 use wayland_client::protocol::wl_data_device_manager::DndAction;
 use wayland_client::protocol::wl_data_offer::WlDataOffer;
 use wayland_client::protocol::wl_pointer::AxisSource;
+use wayland_client::protocol::wl_output::WlOutput;
 use wayland_client::protocol::{
     wl_data_device, wl_data_device_manager, wl_data_offer, wl_data_source, wl_output, wl_region,
 };
@@ -215,6 +216,7 @@ pub(crate) struct WaylandClientState {
     // Output to scale mapping
     outputs: HashMap<ObjectId, Output>,
     in_progress_outputs: HashMap<ObjectId, InProgressOutput>,
+    wl_outputs_sorted: Vec<WlOutput>,
     keyboard_layout: LinuxKeyboardLayout,
     keymap_state: Option<xkb::State>,
     compose_state: Option<xkb::compose::State>,
@@ -458,6 +460,7 @@ impl WaylandClient {
         let mut seat: Option<wl_seat::WlSeat> = None;
         #[allow(clippy::mutable_key_type)]
         let mut in_progress_outputs = HashMap::default();
+        let mut wl_outputs_sorted = Vec::new();
         globals.contents().with_list(|list| {
             for global in list {
                 match &global.interface[..] {
@@ -477,6 +480,7 @@ impl WaylandClient {
                             (),
                         );
                         in_progress_outputs.insert(output.id(), InProgressOutput::default());
+                        wl_outputs_sorted.push(output);
                     }
                     _ => {}
                 }
@@ -599,6 +603,7 @@ impl WaylandClient {
             composing: false,
             outputs: HashMap::default(),
             in_progress_outputs,
+            wl_outputs_sorted,
             windows: HashMap::default(),
             common,
             keyboard_layout: LinuxKeyboardLayout::new(UNKNOWN_KEYBOARD_LAYOUT_NAME),
@@ -733,6 +738,12 @@ impl LinuxClient for WaylandClient {
             .as_ref()
             .and_then(|w| w.toplevel());
 
+        let output = if let crate::WindowKind::LayerShell(options) = &params.kind && let Some(output_index) = options.output_index {
+            state.wl_outputs_sorted.get(output_index).cloned()
+        } else {
+            None
+        };
+
         let (window, surface_id) = WaylandWindow::new(
             handle,
             state.globals.clone(),
@@ -741,6 +752,7 @@ impl LinuxClient for WaylandClient {
             params,
             state.common.appearance,
             parent,
+            output,
         )?;
         state.windows.insert(surface_id, window.0.clone());
 
